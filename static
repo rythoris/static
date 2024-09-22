@@ -8,19 +8,20 @@ import json
 import sys
 import os
 
-VERSION="0.1.0"
-PROG=sys.argv[0]
-DEPS=[
+VERSION = "0.1.0"
+PROG = sys.argv[0]
+DEPS = [
     "stemp",
     "frontmatter",
     "pandoc",
 ]
 
-version_text=f"""{PROG} {VERSION}
+version_text = f"""{PROG} {VERSION}
 
 Source Code: https://github.com/rythoris/static
 Bug Tracker: https://github.com/rythoris/static/issues
 """
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog=PROG)
@@ -30,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-i", "--include", action="append", default=[],
                         help="include the file to the final template params."
                         "included files will be available under the name of the"
-                        "file without the '.json' extention")
+                        "file without the '.json' extension")
 
     single_parser = sub_parser.add_parser('single')
     single_parser.add_argument("-o", "--output",
@@ -41,8 +42,8 @@ def parse_args() -> argparse.Namespace:
 
     list_parser = sub_parser.add_parser('list')
     list_parser.add_argument("-o", "--output",
-                               help="Output file. by default it will execute the"
-                               "template and print the result to to the stdout.")
+                             help="Output file. by default it will execute the"
+                             "template and print the result to to the stdout.")
     list_parser.add_argument("template", metavar="TEMPLATE")
     list_parser.add_argument("files", nargs='+', metavar="FILES")
 
@@ -105,7 +106,7 @@ def single_command(args: argparse.Namespace) -> int:
     obj = {**obj, **get_page_data(args.input_file)}
 
     if not os.path.isfile(args.template):
-        print(f"{PROG}: error: template file doesn't exists or is not a regular file: {template}", file=sys.stderr)
+        print(f"{PROG}: error: template file doesn't exists or is not a regular file: {args.template}", file=sys.stderr)
         exit(1)
 
     return run(
@@ -126,7 +127,7 @@ def list_command(args: argparse.Namespace) -> int:
     obj["pages"] = []
 
     if not os.path.isfile(args.template):
-        print(f"{PROG}: error: template file doesn't exists or is not a regular file: {template}", file=sys.stderr)
+        print(f"{PROG}: error: template file doesn't exists or is not a regular file: {args.template}", file=sys.stderr)
         exit(1)
 
     for f in args.files:
