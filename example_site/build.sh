@@ -14,5 +14,5 @@ done
 #
 # by using -i flag were also including the site.json file to be used in the
 # template. Included file object will be available under the name of the file
-# without the '.json' extention.
+# without the '.json' extension.
 static -i "site.json" list list.tmpl ./*.md > "public/index.html"
