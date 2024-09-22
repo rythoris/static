@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+from shutil import which
+from typing import List
+from subprocess import PIPE, run
+
+import argparse
+import json
+import sys
+import os
+
+VERSION="0.1.0"
+PROG=sys.argv[0]
+DEPS=[
+    "stemp",
+    "frontmatter",
+    "pandoc",
+]
+
+version_text=f"""{PROG} {VERSION}
+
+Source Code: https://github.com/rythoris/static
+Bug Tracker: https://github.com/rythoris/static/issues
+"""
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog=PROG)
+    sub_parser = parser.add_subparsers(title="sub-commands", dest="cmd")
+
+    parser.add_argument("-v", "--version", action="version", version=version_text)
+    parser.add_argument("-i", "--include", action="append", default=[],
+                        help="include the file to the final template params."
+                        "included files will be available under the name of the"
+                        "file without the '.json' extention")
+
+    single_parser = sub_parser.add_parser('single')
+    single_parser.add_argument("-o", "--output",
+                               help="Output file. by default it will execute the"
+                               "template and print the result to to the stdout.")
+    single_parser.add_argument("template", metavar="TEMPLATE")
+    single_parser.add_argument("input_file", metavar="INPUT_FILE")
+
+    list_parser = sub_parser.add_parser('list')
+    list_parser.add_argument("-o", "--output",
+                               help="Output file. by default it will execute the"
+                               "template and print the result to to the stdout.")
+    list_parser.add_argument("template", metavar="TEMPLATE")
+    list_parser.add_argument("files", nargs='+', metavar="FILES")
+
+    return parser.parse_args()
+
+
+def include_files(files: List[str]) -> dict:
+    res = {}
+    for fp in files:
+        try:
+            with open(fp, "r") as f:
+                res[fp.removesuffix(".json")] = json.loads(f.read())
+        except Exception as err:
+            print(f"{PROG}: error: could not include file: {fp}: {err}", file=sys.stderr)
+            exit(1)
+    return res
+
+
+def get_page_data(file_path: str) -> dict:
+    meta = dict()
+    meta["filename"] = file_path
+
+    if not os.path.isfile(file_path):
+        print(f"{PROG}: error: couldn't get page data file doesn't exists or is not a regular file: {file_path}", file=sys.stderr)
+        exit(1)
+
+    try:
+        meta["frontmatter"] = json.loads(run(
+            ["frontmatter", "-f", "json", file_path],
+            stdout=PIPE,
+            check=True
+        ).stdout)
+    except Exception as err:
+        print(f"{PROG}: error: could not parse frontmatter: {file_path}: {err}", file=sys.stderr)
+        exit(1)
+
+    markdown_content = run(
+        ["frontmatter", "-c", file_path],
+        stdout=PIPE,
+        check=True
+    ).stdout.decode()
+
+    try:
+        meta["content"] = run(
+            ["pandoc", "--from", "gfm", "--to", "html", "-"],
+            encoding="utf-8",
+            input=markdown_content,
+            stdout=PIPE,
+            check=True
+        ).stdout
+    except Exception as err:
+        print(f"{PROG}: error: could not convert file content to html: {file_path}: {err}", file=sys.stderr)
+        exit(1)
+
+    return meta
+
+
+def single_command(args: argparse.Namespace) -> int:
+    obj = include_files(args.include)
+    obj = {**obj, **get_page_data(args.input_file)}
+
+    if not os.path.isfile(args.template):
+        print(f"{PROG}: error: template file doesn't exists or is not a regular file: {template}", file=sys.stderr)
+        exit(1)
+
+    return run(
+        [
+            "stemp",
+            "-f", "json",
+            "-o", args.output if args.output else "/dev/fd/1",
+            args.template,
+            "-"
+        ],
+        encoding="utf-8",
+        input=json.dumps(obj),
+    ).returncode
+
+
+def list_command(args: argparse.Namespace) -> int:
+    obj = include_files(args.include)
+    obj["pages"] = []
+
+    if not os.path.isfile(args.template):
+        print(f"{PROG}: error: template file doesn't exists or is not a regular file: {template}", file=sys.stderr)
+        exit(1)
+
+    for f in args.files:
+        obj["pages"].append(get_page_data(f))
+
+    return run(
+        [
+            "stemp",
+            "-f", "json",
+            "-o", args.output if args.output else "/dev/fd/1",
+            args.template,
+            "-"
+        ],
+        encoding="utf-8",
+        input=json.dumps(obj),
+    ).returncode
+
+
+def main():
+    args = parse_args()
+
+    for dep in DEPS:
+        if not which(dep):
+            print(f"{PROG}: error: Could not find the required executable in path: {dep}", file=sys.stderr)
+            print(f"{PROG}: info: For more information about required dependencies see --help.", file=sys.stderr)
+            exit(1)
+
+    match args.cmd:
+        case "single":
+            exit(single_command(args))
+        case "list":
+            exit(list_command(args))
+
+
+if __name__ == "__main__":
+    main()

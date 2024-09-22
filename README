@@ -1,0 +1,26 @@
+Static is a simple and experimental static site generator script build on top of
+pandoc (https://pandoc.org), stemp (https://github.com/rythoris/stemp) and
+frontmatter (https://github.com/rythoris/frontmatter).
+
+Static is build with the UNIX philosophy in mind, it is designed to do one thing
+and that is to build pages from markdown files. It converts the Markdown to HTML
+using pandoc and uses stemp templates to make beautiful yet simple websites.
+
+Installation
+============
+
+Just download the script!
+
+     $ wget https://raw.githubusercontent.com/rythoris/static/refs/heads/master/static
+
+Getting Started
+===============
+
+To see the `static` in action please refer to the 'example_site' directory and
+specifically the 'example_site/build.sh' script. I've wrote some comments in that
+script that will help you get started with `static`.
+
+License
+=======
+
+This project is licensed under the GPLv3 copyleft license.

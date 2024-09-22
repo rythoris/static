@@ -1,0 +1,13 @@
+<html>
+  <head>
+    <title>{{ .frontmatter.title }}</title>
+  </head>
+  <body>
+    <h1>{{ .frontmatter.title }}</h1>
+    <span>Date: {{  .frontmatter.date }}</span>
+
+    <article>
+      {{ .content }}
+    </article>
+  </body>
+</html>
