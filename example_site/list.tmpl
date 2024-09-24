@@ -9,7 +9,7 @@
 
     <ul>
     {{ range .pages }}
-      <li><a href="/blog/{{ trim_suffix .filename ".md" }}.html">{{ .frontmatter.title }}</a> ({{ .frontmatter.date }})</li>
+      <li><a href="/blog/{{ trimSuffix .filename ".md" }}.html">{{ .frontmatter.title }}</a> ({{ .frontmatter.date }})</li>
     {{ end }}
     </ul>
   </body>
