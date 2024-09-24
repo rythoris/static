@@ -5,6 +5,7 @@ from subprocess import PIPE, run
 
 import argparse
 import json
+import toml
 import sys
 import os
 import itertools
@@ -53,14 +54,23 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def load_vars_file(filepath: str) -> dict:
+    with open(filepath, "r") as f:
+        match os.path.splitext(filepath)[1].removeprefix("."):
+            case "json": return json.loads(f.read())
+            case "toml": return toml.loads(f.read())
+            case _:
+                print(f"{PROG}: error: could not detect the vars file format based on extension: {filepath}", file=sys.stderr)
+                exit(1)
+
+
 def include_files(files: List[str]) -> dict:
     res = {}
-    for fp in files:
+    for file in files:
         try:
-            with open(fp, "r") as f:
-                res[fp.removesuffix(".json")] = json.loads(f.read())
+            res[file.removesuffix(os.path.splitext(file)[1])] = load_vars_file(file)
         except Exception as err:
-            print(f"{PROG}: error: could not include file: {fp}: {err}", file=sys.stderr)
+            print(f"{PROG}: error: could not include file: {file}: {err}", file=sys.stderr)
             exit(1)
     return res
 
