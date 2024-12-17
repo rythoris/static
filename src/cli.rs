@@ -24,21 +24,34 @@ pub struct GlobalArgs {
 
 #[derive(Args, Debug)]
 pub struct SingleCommandArgs {
-    pub base_template: PathBuf,
-    pub content: PathBuf,
+    /// base template
+    #[arg(value_name = "TEMPLATE_FILE")]
+    pub template_file: PathBuf,
+
+    /// input markdown file
+    #[arg(value_name = "INPUT_FILE")]
+    pub input_file: PathBuf,
 
     #[arg(short, long)]
+    /// output path. If not provided, the content will be printed to stdout.
     pub output: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
 pub struct ListCommandArgs {
-    pub base_template: PathBuf,
+    /// base template
+    #[arg(value_name = "TEMPLATE_FILE")]
+    pub template_file: PathBuf,
+
+    /// pages
+    #[arg(value_name = "FILE")]
     pub files: Vec<PathBuf>,
 
-    #[arg(short, long)]
+    /// template body content
+    #[arg(short, long, value_name = "FILE")]
     pub content: Option<PathBuf>,
 
+    /// output path. If not provided, the content will be printed to stdout.
     #[arg(short, long)]
     pub output: Option<PathBuf>,
 }
