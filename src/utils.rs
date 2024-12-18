@@ -77,3 +77,37 @@ pub fn frontmatter<'a>(content: &'a str) -> Result<(Option<PageData>, &'a str)> 
         None => Ok((None, content)),
     }
 }
+
+static SUMMARY_FILTERS: [fn(&str) -> bool; 6] = [
+    |x| x.starts_with("# "),
+    |x| x.starts_with("!["),
+    |x| x.starts_with("[^"),
+    |x| x.starts_with(":"),
+    |x| x.starts_with("<"),
+    |x| x.len() == 0,
+];
+
+pub fn summerize<'a>(content: &'a str, max_words: usize) -> String {
+    if let Some(end) = content.find("<!-- more -->") {
+        let mut content = content[..end].to_owned();
+        content += "…";
+        return content;
+    }
+
+    let footnote_regexp = regex::Regex::new(r"\[\^\d+\]").unwrap();
+    let content = footnote_regexp.replace_all(&content, "").to_string();
+
+    let summary_words: Vec<&str> = content
+        .lines()
+        .filter(|x| !SUMMARY_FILTERS.iter().any(|f| f(x)))
+        .flat_map(|line| line.split_ascii_whitespace())
+        .take(max_words)
+        .collect();
+
+    let mut summary = summary_words.join(" ");
+    if summary_words.len() <= max_words {
+        summary += "…";
+    }
+
+    summary
+}

@@ -11,16 +11,21 @@ fn main() -> Result<()> {
     let mut ctx = tera::Context::new();
     let mut te = tera::Tera::default();
 
-    for template in cli.g.templates {
-        te.add_template_file(&template, None).context(format!(
+    for template in &cli.g.templates {
+        te.add_template_file(
+            &template,
+            Some(template.file_name().unwrap().to_str().unwrap()),
+        )
+        .context(format!(
             "could not include template: {}",
             template.display()
         ))?;
     }
 
-    for include in cli.g.includes {
+    for include in &cli.g.includes {
         let (name, p) = include;
-        let name = name.unwrap_or(utils::include_name_from_filename(&p)?);
+        let fname = utils::include_name_from_filename(&p)?;
+        let name = name.as_ref().unwrap_or(&fname);
         ctx.insert(
             name,
             &utils::parse_include_file(&p)
@@ -28,6 +33,6 @@ fn main() -> Result<()> {
         );
     }
 
-    cli.command.run(&mut te, &mut ctx)?;
+    cli.command.run(cli.g, &mut te, &mut ctx)?;
     Ok(())
 }

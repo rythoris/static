@@ -1,5 +1,5 @@
-use crate::cli::{Commands, ListCommandArgs, SingleCommandArgs};
-use crate::utils::{self, PageData};
+use crate::cli::{Commands, GlobalArgs, ListCommandArgs, SingleCommandArgs};
+use crate::utils::{self, summerize, PageData};
 
 use std::io::Write;
 use std::path::Path;
@@ -10,16 +10,16 @@ use serde::Serialize;
 use tera::Tera;
 
 impl Commands {
-    pub fn run(self, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
+    pub fn run(self, g: GlobalArgs, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
         match self {
-            Commands::Single(args) => args.run(te, ctx),
-            Commands::List(args) => args.run(te, ctx),
+            Commands::Single(args) => args.run(g, te, ctx),
+            Commands::List(args) => args.run(g, te, ctx),
         }
     }
 }
 
 impl SingleCommandArgs {
-    pub fn run(self, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
+    pub fn run(self, g: GlobalArgs, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
         // This shouldn't fail right? RIGHT???
         let template_name = self
             .template_file
@@ -33,6 +33,7 @@ impl SingleCommandArgs {
         }
 
         ctx.extend(tera::Context::from_serialize(load_markdown_page(
+            &g,
             &self.input_file,
         )?)?);
 
@@ -64,7 +65,7 @@ impl SingleCommandArgs {
 }
 
 impl ListCommandArgs {
-    pub fn run(self, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
+    pub fn run(self, g: GlobalArgs, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
         // This shouldn't fail right? RIGHT???
         let template_name = self
             .template_file
@@ -79,13 +80,14 @@ impl ListCommandArgs {
 
         if let Some(content_file) = self.content {
             ctx.extend(tera::Context::from_serialize(load_markdown_page(
+                &g,
                 &content_file,
             )?)?);
         }
 
         let mut pages = Vec::with_capacity(self.pages.len());
         for page in self.pages {
-            pages.push(load_markdown_page(&page)?);
+            pages.push(load_markdown_page(&g, &page)?);
         }
         ctx.insert("pages", &pages);
 
@@ -116,7 +118,8 @@ impl ListCommandArgs {
     }
 }
 
-pub fn map_insert<T, S>(m: &mut PageData, key: S, val: &T)
+#[inline]
+fn map_insert<T, S>(m: &mut PageData, key: S, val: &T)
 where
     T: Serialize + ?Sized,
     S: Into<String>,
@@ -124,7 +127,17 @@ where
     m.insert(key.into(), serde_json::to_value(val).unwrap());
 }
 
-fn load_markdown_page(file: &Path) -> Result<PageData> {
+#[inline]
+fn to_html(content: &str) -> Result<String> {
+    let mut opts = markdown::Options::gfm();
+    opts.compile.gfm_footnote_clobber_prefix = Some(String::new());
+    opts.compile.gfm_footnote_label = Some(String::new());
+    opts.compile.gfm_footnote_label_tag_name = Some(String::from("hr"));
+
+    markdown::to_html_with_options(content, &opts).map_err(|e| anyhow::format_err!("{}", e))
+}
+
+fn load_markdown_page(g: &GlobalArgs, file: &Path) -> Result<PageData> {
     let mut page_data = PageData::new();
     let file_name = file.file_name().map(|x| x.to_str().unwrap()).unwrap();
 
@@ -139,12 +152,11 @@ fn load_markdown_page(file: &Path) -> Result<PageData> {
     }
 
     map_insert(&mut page_data, "file_name", file_name);
-    map_insert(
-        &mut page_data,
-        "body",
-        &markdown::to_html_with_options(file_content, &markdown::Options::gfm())
-            .map_err(|e| anyhow::format_err!("{}", e))?,
-    );
+
+    let summary = summerize(file_content, g.max_summary_words);
+    map_insert(&mut page_data, "summary", &to_html(&summary)?);
+
+    map_insert(&mut page_data, "body", &to_html(file_content)?);
 
     Ok(page_data)
 }

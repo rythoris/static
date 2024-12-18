@@ -15,11 +15,17 @@ pub struct Cli {
 
 #[derive(Args, Debug)]
 pub struct GlobalArgs {
+    /// var files
     #[arg(short, long, value_parser = include_file_parser)]
     pub includes: Vec<(Option<String>, PathBuf)>,
 
+    /// global template files
     #[arg(short, long)]
     pub templates: Vec<PathBuf>,
+
+    /// number of words in the auto-generated summary when `<!-- more -->` was not present
+    #[arg(short, long, default_value = "50")]
+    pub max_summary_words: usize,
 }
 
 #[derive(Args, Debug)]
@@ -33,7 +39,7 @@ pub struct SingleCommandArgs {
     pub input_file: PathBuf,
 
     #[arg(short, long)]
-    /// output path. If not provided, the content will be printed to stdout.
+    /// output path (If not provided, the content will be printed to stdout)
     pub output: Option<PathBuf>,
 }
 
@@ -51,7 +57,7 @@ pub struct ListCommandArgs {
     #[arg(short, long, value_name = "FILE")]
     pub content: Option<PathBuf>,
 
-    /// output path. If not provided, the content will be printed to stdout.
+    /// output path (If not provided, the content will be printed to stdout)
     #[arg(short, long)]
     pub output: Option<PathBuf>,
 }
