@@ -65,7 +65,54 @@ impl SingleCommandArgs {
 
 impl ListCommandArgs {
     pub fn run(self, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
-        unimplemented!()
+        // This shouldn't fail right? RIGHT???
+        let template_name = self
+            .template_file
+            .file_name()
+            .map(|x| x.to_str().unwrap())
+            .unwrap();
+
+        ctx.insert("page_type", "list");
+        if let Some(output) = &self.output {
+            ctx.insert("output_name", output.to_str().unwrap());
+        }
+
+        if let Some(content_file) = self.content {
+            ctx.extend(tera::Context::from_serialize(load_markdown_page(
+                &content_file,
+            )?)?);
+        }
+
+        let mut pages = Vec::with_capacity(self.pages.len());
+        for page in self.pages {
+            pages.push(load_markdown_page(&page)?);
+        }
+        ctx.insert("pages", &pages);
+
+        te.add_template_file(&self.template_file, Some(template_name))
+            .context(format!(
+                "could not add base template file: {}",
+                self.template_file.display()
+            ))?;
+
+        let content = te.render(template_name, &ctx)?;
+        match self.output {
+            Some(output) => {
+                let mut output_file = fs::File::open(&output).context(format!(
+                    "could not open the output file for writing: {}",
+                    output.display()
+                ))?;
+                write!(output_file, "{}", content).context(format!(
+                    "could not write to output file: {}",
+                    output.display()
+                ))?;
+            }
+            None => {
+                write!(io::stdout().lock(), "{}", content).context("could not write to stdout")?;
+            }
+        }
+
+        Ok(())
     }
 }
 

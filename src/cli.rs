@@ -44,10 +44,10 @@ pub struct ListCommandArgs {
     pub template_file: PathBuf,
 
     /// pages
-    #[arg(value_name = "FILE")]
-    pub files: Vec<PathBuf>,
+    #[arg(value_name = "FILE", num_args(1..))]
+    pub pages: Vec<PathBuf>,
 
-    /// template body content
+    /// template body content file (this is simular to the `single` command input file)
     #[arg(short, long, value_name = "FILE")]
     pub content: Option<PathBuf>,
 
