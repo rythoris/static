@@ -4,6 +4,8 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
+pub type PageData = BTreeMap<String, serde_json::Value>;
+
 pub fn include_name_from_filename(p: &Path) -> Result<String> {
     let valid_filename_re = regex::Regex::new(r"[A-z][A-z0-9-_]").unwrap();
 
@@ -17,7 +19,7 @@ pub fn include_name_from_filename(p: &Path) -> Result<String> {
     }
 }
 
-pub fn parse_include_file(p: &Path) -> Result<BTreeMap<String, serde_json::Value>> {
+pub fn parse_include_file(p: &Path) -> Result<PageData> {
     // function for reading file. it is defined to make the code easier to read.
     let read_include_file = || fs::read_to_string(p).context(format!("could not read file"));
 
@@ -49,9 +51,7 @@ const FRONTMATTER_FORMATS: [(&str, &str, FrontmatterType); 6] = [
 ];
 
 // TODO: write tests for `frontmatter`
-pub fn frontmatter<'a>(
-    content: &'a str,
-) -> Result<(Option<BTreeMap<String, serde_json::Value>>, &'a str)> {
+pub fn frontmatter<'a>(content: &'a str) -> Result<(Option<PageData>, &'a str)> {
     let fmt = FRONTMATTER_FORMATS
         .iter()
         .filter(|(start, ..)| content.starts_with(start))
@@ -64,7 +64,7 @@ pub fn frontmatter<'a>(
                 Some(end) => {
                     let frontmatter_end = start + end + end_marker.len();
                     let frontmatter_data = &content[start..*end + 1];
-                    let frontmatter: BTreeMap<String, serde_json::Value> = match typ {
+                    let frontmatter = match typ {
                         FrontmatterType::Yaml => serde_yaml::from_str(frontmatter_data)?,
                         FrontmatterType::Toml => toml::from_str(frontmatter_data)?,
                         FrontmatterType::Json => serde_json::from_str(frontmatter_data)?,
