@@ -2,6 +2,7 @@ use crate::cli::{Commands, ListCommandArgs, SingleCommandArgs};
 use crate::utils;
 
 use std::io::Write;
+use std::path::Path;
 use std::{fs, io};
 
 use anyhow::{Context, Result};
@@ -18,36 +19,18 @@ impl Commands {
 
 impl SingleCommandArgs {
     pub fn run(self, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
-        // These shouldn't fail right? RIGHT???
+        // This shouldn't fail right? RIGHT???
         let template_name = self
             .template_file
             .file_name()
             .map(|x| x.to_str().unwrap())
             .unwrap();
-        let input_name = self
-            .input_file
-            .file_name()
-            .map(|x| x.to_str().unwrap())
-            .unwrap();
 
-        let input_file_content = fs::read_to_string(&self.input_file).context(format!(
-            "could not read input file: {}",
-            self.input_file.display()
-        ))?;
-
-        let (frontmatter, input_file_content) =
-            utils::frontmatter(&input_file_content).context("could not parse frontmatter")?;
-
-        if let Some(frontmatter) = frontmatter {
-            ctx.insert("frontmatter", &frontmatter);
+        if let Some(output) = &self.output {
+            ctx.insert("output_name", output.to_str().unwrap());
         }
 
-        ctx.insert("file_name", input_name);
-        ctx.insert(
-            "body",
-            &markdown::to_html_with_options(input_file_content, &markdown::Options::gfm())
-                .map_err(|e| anyhow::format_err!("{}", e))?,
-        );
+        ctx.extend(load_markdown_page(&self.input_file)?);
 
         te.add_template_file(&self.template_file, Some(template_name))
             .context(format!(
@@ -80,4 +63,28 @@ impl ListCommandArgs {
     pub fn run(self, te: &mut Tera, ctx: &mut tera::Context) -> Result<()> {
         unimplemented!()
     }
+}
+
+fn load_markdown_page(file: &Path) -> Result<tera::Context> {
+    let mut ctx = tera::Context::new();
+    let file_name = file.file_name().map(|x| x.to_str().unwrap()).unwrap();
+
+    let file_content =
+        fs::read_to_string(&file).context(format!("could not read file: {}", file.display()))?;
+
+    let (frontmatter, file_content) =
+        utils::frontmatter(&file_content).context("could not parse frontmatter text")?;
+
+    if let Some(frontmatter) = frontmatter {
+        ctx.insert("frontmatter", &frontmatter);
+    }
+
+    ctx.insert("file_name", file_name);
+    ctx.insert(
+        "body",
+        &markdown::to_html_with_options(file_content, &markdown::Options::gfm())
+            .map_err(|e| anyhow::format_err!("{}", e))?,
+    );
+
+    Ok(ctx)
 }
