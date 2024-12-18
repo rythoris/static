@@ -46,7 +46,7 @@ impl SingleCommandArgs {
         let content = te.render(template_name, &ctx)?;
         match self.output {
             Some(output) => {
-                let mut output_file = fs::File::open(&output).context(format!(
+                let mut output_file = fs::File::create(&output).context(format!(
                     "could not open the output file for writing: {}",
                     output.display()
                 ))?;
@@ -100,7 +100,7 @@ impl ListCommandArgs {
         let content = te.render(template_name, &ctx)?;
         match self.output {
             Some(output) => {
-                let mut output_file = fs::File::open(&output).context(format!(
+                let mut output_file = fs::File::create(&output).context(format!(
                     "could not open the output file for writing: {}",
                     output.display()
                 ))?;
