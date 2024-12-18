@@ -1,11 +1,12 @@
 use crate::cli::{Commands, ListCommandArgs, SingleCommandArgs};
-use crate::utils;
+use crate::utils::{self, PageData};
 
 use std::io::Write;
 use std::path::Path;
 use std::{fs, io};
 
 use anyhow::{Context, Result};
+use serde::Serialize;
 use tera::Tera;
 
 impl Commands {
@@ -30,7 +31,9 @@ impl SingleCommandArgs {
             ctx.insert("output_name", output.to_str().unwrap());
         }
 
-        ctx.extend(load_markdown_page(&self.input_file)?);
+        ctx.extend(tera::Context::from_serialize(load_markdown_page(
+            &self.input_file,
+        )?)?);
 
         te.add_template_file(&self.template_file, Some(template_name))
             .context(format!(
@@ -65,8 +68,16 @@ impl ListCommandArgs {
     }
 }
 
-fn load_markdown_page(file: &Path) -> Result<tera::Context> {
-    let mut ctx = tera::Context::new();
+pub fn map_insert<T, S>(m: &mut PageData, key: S, val: &T)
+where
+    T: Serialize + ?Sized,
+    S: Into<String>,
+{
+    m.insert(key.into(), serde_json::to_value(val).unwrap());
+}
+
+fn load_markdown_page(file: &Path) -> Result<PageData> {
+    let mut page_data = PageData::new();
     let file_name = file.file_name().map(|x| x.to_str().unwrap()).unwrap();
 
     let file_content =
@@ -76,15 +87,16 @@ fn load_markdown_page(file: &Path) -> Result<tera::Context> {
         utils::frontmatter(&file_content).context("could not parse frontmatter text")?;
 
     if let Some(frontmatter) = frontmatter {
-        ctx.insert("frontmatter", &frontmatter);
+        map_insert(&mut page_data, "frontmatter", &frontmatter);
     }
 
-    ctx.insert("file_name", file_name);
-    ctx.insert(
+    map_insert(&mut page_data, "file_name", file_name);
+    map_insert(
+        &mut page_data,
         "body",
         &markdown::to_html_with_options(file_content, &markdown::Options::gfm())
             .map_err(|e| anyhow::format_err!("{}", e))?,
     );
 
-    Ok(ctx)
+    Ok(page_data)
 }
