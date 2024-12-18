@@ -63,7 +63,7 @@ pub fn frontmatter<'a>(content: &'a str) -> Result<(Option<PageData>, &'a str)> 
             match &content[start..].find(end_marker) {
                 Some(end) => {
                     let frontmatter_end = start + end + end_marker.len();
-                    let frontmatter_data = &content[start..*end + 1];
+                    let frontmatter_data = &content[start..start + end];
                     let frontmatter = match typ {
                         FrontmatterType::Yaml => serde_yaml::from_str(frontmatter_data)?,
                         FrontmatterType::Toml => toml::from_str(frontmatter_data)?,
