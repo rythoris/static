@@ -27,6 +27,7 @@ impl SingleCommandArgs {
             .map(|x| x.to_str().unwrap())
             .unwrap();
 
+        ctx.insert("page_type", "single");
         if let Some(output) = &self.output {
             ctx.insert("output_name", output.to_str().unwrap());
         }
