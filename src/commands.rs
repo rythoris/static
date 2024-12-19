@@ -133,6 +133,9 @@ fn to_html(content: &str) -> Result<String> {
     opts.compile.gfm_footnote_clobber_prefix = Some(String::new());
     opts.compile.gfm_footnote_label = Some(String::new());
     opts.compile.gfm_footnote_label_tag_name = Some(String::from("hr"));
+    opts.compile.allow_dangerous_protocol = true;
+    opts.compile.allow_dangerous_html = true;
+    opts.compile.gfm_tagfilter = true;
 
     markdown::to_html_with_options(content, &opts).map_err(|e| anyhow::format_err!("{}", e))
 }
