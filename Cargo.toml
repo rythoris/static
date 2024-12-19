@@ -1,0 +1,15 @@
+[package]
+name = "static"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.94"
+clap = { version = "4.5.23", features = ["derive"] }
+markdown = "1.0.0-alpha.21"
+regex = "1.11.1"
+serde = "1.0.216"
+serde_json = "1.0.133"
+serde_yaml = "0.9.34"
+tera = "1.20.0"
+toml = "0.8.19"
